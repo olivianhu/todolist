@@ -1,47 +1,67 @@
-// import express
 const express = require('express')
-// import cors
-const cors = require('cors')
+const pg = require('pg');
+const cors = require('cors');
+const corsOptions ={
+    origin:'http://localhost:3000', 
+    credentials:true,            //access-control-allow-credentials:true
+    optionSuccessStatus:200
+}
 
-/*
-create an instance of an express application, which lets you do things such as 
-set API endpoints for URLs, specifying GET, POST, PUT, DELETE, and also start
-the server via app.listen()
-*/
 const app = express()
-
-//uses cors headers to allow requests between servers
-app.use(cors())
+app.use(cors(corsOptions));
 app.use(express.json());
 
 let todos = [];
 
-/*
-This app.get() below takes two arguments.
+async function insertIntoDatabase(name) {
+  //create client
+  const client = new pg.Client({
+      user: 'postgres',
+      database: 'todolist',
+      password: '00120602', 
+      port: 5432,
+  });
 
-1st argument: '/'
-This first argument tells us which API endpoint is going to be used. When we send a get request to this backend,
-we would send a get request for URL --> https://localhost:5000/ <-- this last '/' is the first argument to app.get()
-This is a toy example so no customization is needed, but '/' can be changed to say, something like '/randomNumber'
-This lets us name our API endpoints for their purposes. 
+  //connect client
+  await client.connect()
+  // console.log(name);
 
-2nd argument: function()
-If you notice, the second argument in the app.get() function is a function, just written in one of of the quicker
-and fancier ways to write a function in Javascript. 
-This function typically will have two arguments --> req, res (which is short for request, response)
-The 'req' field allows us to take in the data for the request that was sent to our app.
-The 'res' field allows us to send data back to the API caller. In our example, we just send a string that says, 'Hello World!'
-*/
+  const tableName = 'usernames';
+  const queryText = 'INSERT INTO ' + tableName + '(name) VALUES($1)';
+
+  const res = await client.query(queryText, [name]);
+  // console.log(res);
+  
+  //close connection
+  await client.end()
+}
+
 app.get('/', (req, res) => {
     console.log('Todos Sent!')
     res.send(todos)
 })
 
+app.post('/login', async (req, res) => {
+  const name = req.body['user'];
+  console.log(req.body);
+  console.log(name);
+  await insertIntoDatabase(name);
+  console.log('name entered!');
+});
+
 app.post('/', (req, res) => {
   const new_todo = req.body;
   todos.push(new_todo);
-  res.send(todos);
+  res.send("Todo posted!");
 });
+
+app.delete('/', (req, res) => {
+  const deleted_todo_id = req.body['id'];
+  console.log(req.body)
+  todos = todos.filter(todo => todo.id !== deleted_todo_id);
+  res.send("Todo deleted!");
+});
+
 
 /*
 app.listen() uses 3 arguments here.
@@ -58,8 +78,3 @@ const host = 'localhost'
 app.listen(port, host, () => {
   console.log(`Example app listening on port ${port}`)
 })
-
-/*
-To run -->  node index.js
-node is the javascript runtime environment that runs our code in the file 'index.js'
-*/
