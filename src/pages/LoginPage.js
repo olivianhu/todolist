@@ -1,12 +1,9 @@
 import Axios from 'axios'
-import { useState } from 'react'
 
-export default function LoginPage( {setLoggedIn} ) {
-  const [user, setUser] = useState("");
-
+export default function LoginPage( {setLoggedIn, user, setUser} ) {
   function retrieveUser(user) {
     Axios.post('http://localhost:5000/login',{
-        user: user,
+      user: user,
     })
     .then(function (response) {
         console.log('response successfully sent, response below')

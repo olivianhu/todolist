@@ -1,39 +1,57 @@
 const express = require('express')
 const pg = require('pg');
 const cors = require('cors');
-const corsOptions ={
-    origin:'http://localhost:3000', 
-    credentials:true,            //access-control-allow-credentials:true
-    optionSuccessStatus:200
-}
+const corsOptions = {
+  origin: 'http://localhost:3000', 
+  credentials: true,
+  methods: ['GET', 'POST', 'DELETE'], 
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
 
 const app = express()
 app.use(cors(corsOptions));
 app.use(express.json());
 
 let todos = [];
+let todos_ids = [];
 
-async function insertIntoDatabase(name) {
-  //create client
+async function connectToDatabase() {
   const client = new pg.Client({
-      user: 'postgres',
-      database: 'todolist',
-      password: '00120602', 
-      port: 5432,
+    user: 'postgres',
+    database: 'todolist',
+    password: '00120602',
+    port: 5432,
   });
 
-  //connect client
-  await client.connect()
-  // console.log(name);
+  await client.connect();
+  return client;
+}
+
+async function insertUserIntoDatabase(name) {
+  //create client
+  const client = await connectToDatabase();
 
   const tableName = 'usernames';
-  const queryText = 'INSERT INTO ' + tableName + '(name) VALUES($1)';
+  const queryText = 'INSERT INTO ' + tableName + '(username) VALUES($1) ON CONFLICT (username) DO NOTHING;';
 
   const res = await client.query(queryText, [name]);
-  // console.log(res);
+  console.log(res);
   
   //close connection
   await client.end()
+}
+
+async function getUserIdByUsername(username) {
+  const client = await connectToDatabase();
+
+  const queryText = "SELECT id FROM usernames WHERE username = $1;";
+  const res = await client.query(queryText, [username]);
+
+  if (res.rows.length > 0) {
+    return res.rows[0].id; 
+  } else {
+    return null;
+  }
 }
 
 app.get('/', (req, res) => {
@@ -45,14 +63,47 @@ app.post('/login', async (req, res) => {
   const name = req.body['user'];
   console.log(req.body);
   console.log(name);
-  await insertIntoDatabase(name);
+  await insertUserIntoDatabase(name);
   console.log('name entered!');
 });
 
-app.post('/', (req, res) => {
+app.post('/', async (req, res) => {
   const new_todo = req.body;
   todos.push(new_todo);
-  res.send("Todo posted!");
+  todos_ids.push(new_todo.id);
+  const client = await connectToDatabase();
+  const id = await getUserIdByUsername(new_todo.user);
+  console.log(id);
+
+  const queryText = `
+    INSERT INTO todos (id, title, completed, user_id)
+    VALUES ($1, $2, $3, $4)
+    ON CONFLICT (id) DO NOTHING;
+  `;
+  await client.query(queryText, [new_todo.id, new_todo.task, new_todo.completed || false, id]);
+  await client.end();
+  res.send("Todo added!");
+});
+
+app.post('/toggle', async (req, res) => {
+  const id = req.body['id'];
+
+  todos = todos.map(todo => {
+    if (todo.id === id) {
+      return {
+        ...todo,
+        completed: !todo.completed
+      };
+    }
+    return todo;
+  });
+  // const client = await connectToDatabase();
+  // const queryText = "UPDATE todos SET completed = NOT completed WHERE id = $1;";
+  // await client.query(queryText, [todo_id]);
+
+  // await client.end();
+  // res.send(todos);
+  res.send("Todo status toggled!");
 });
 
 app.delete('/', (req, res) => {
@@ -61,6 +112,7 @@ app.delete('/', (req, res) => {
   todos = todos.filter(todo => todo.id !== deleted_todo_id);
   res.send("Todo deleted!");
 });
+
 
 
 /*

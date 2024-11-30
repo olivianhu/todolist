@@ -5,22 +5,21 @@ import TodoPage from './pages/TodoPage';
 import LoginPage from './pages/LoginPage';
 
 function App() {
-  function retrieveTodos() {
-    Axios.get('http://localhost:5000/')
+  function sendTodo(todo) {
+    Axios.post('http://localhost:5000/', todo)
     .then(function (response) {
-        console.log('response successfully received, response below')
+        console.log('response successfully sent, response below')
         console.log(response)
-
-        // set todos to be response we get from backend
-        setTodos(response.data);
     }).catch(function (error) {
-        console.log('response unsusccessfully received, error below')
+        console.log('response unsuccessfully received, error below')
         console.log(error)
     })
   }
 
-  function sendTodo(todo) {
-    Axios.post('http://localhost:5000/', todo)
+  function toggleTodo(id) {
+    Axios.post('http://localhost:5000/toggle', {
+        id: id,
+    })
     .then(function (response) {
         console.log('response successfully sent, response below')
         console.log(response)
@@ -47,6 +46,7 @@ function App() {
 
   const[todos, setTodos] = useState([]);
   const[loggedIn, setLoggedIn] = useState(false);
+  const [user, setUser] = useState("");
 
   function addTodo(todo) {
     setTodos([todo, ...todos]);
@@ -71,20 +71,32 @@ function App() {
         return todo;
       })
     );
+    toggleTodo(id)
   }
 
   return (
     <div className="App">
       <header className="App-header">
         {loggedIn ? <TodoPage
+          addTodo={addTodo}
+          todos={todos} 
+          setTodos={setTodos}
+          removeTodo={removeTodo}
+          toggleComplete={toggleComplete}
+          user={user}
+        /> : <LoginPage 
+          setLoggedIn={setLoggedIn}
+          user={user}
+          setUser={setUser}
+        />}
+        {/* <TodoPage
           retrieveTodos={retrieveTodos}
           addTodo={addTodo}
           todos={todos} 
           removeTodo={removeTodo}
           toggleComplete={toggleComplete}
-        /> : <LoginPage 
-          setLoggedIn={setLoggedIn}
-        />}
+          user={user}
+        /> */}
       </header>
     </div>
   );
