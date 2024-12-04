@@ -155,10 +155,16 @@ app.post('/toggle', async (req, res) => {
   res.send("Todo status toggled!");
 });
 
-app.delete('/', (req, res) => {
+app.delete('/', async (req, res) => {
   const deleted_todo_id = req.body['id'];
   // console.log(req.body)
   todos = todos.filter(todo => todo.id !== deleted_todo_id);
+
+  const client = await connectToDatabase();
+  const queryText = "DELETE FROM todos WHERE id = $1;";
+  await client.query(queryText, [deleted_todo_id]);
+
+  await client.end();
   res.send("Todo deleted!");
 });
 
