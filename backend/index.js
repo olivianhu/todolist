@@ -2,7 +2,7 @@ const express = require('express')
 const pg = require('pg');
 const cors = require('cors');
 const corsOptions = {
-  origin: 'http://localhost:3000', 
+  origin: '*', 
   credentials: true,
   methods: ['GET', 'POST', 'DELETE'], 
   allowedHeaders: ['Content-Type', 'Authorization'],
