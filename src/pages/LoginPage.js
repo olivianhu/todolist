@@ -2,7 +2,7 @@ import Axios from 'axios'
 
 export default function LoginPage( {setLoggedIn, user, setUser} ) {
   function retrieveUser(user) {
-    Axios.post('http://localhost:5000/login',{
+    Axios.post('http://localhost:5000/login', {
       user: user,
     })
     .then(function (response) {

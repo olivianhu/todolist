@@ -27,7 +27,7 @@ export default function Todo({ todo, removeTodo, toggleComplete }) {
           fontSize: "20px",
           marginBottom: "3px"
         }}>
-          {todo.task}</li>
+          {todo.title}</li>
         </div>
         <button 
           style = {{

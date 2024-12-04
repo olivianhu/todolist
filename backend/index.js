@@ -35,7 +35,7 @@ async function insertUserIntoDatabase(name) {
   const queryText = 'INSERT INTO ' + tableName + '(username) VALUES($1) ON CONFLICT (username) DO NOTHING;';
 
   const res = await client.query(queryText, [name]);
-  console.log(res);
+  // console.log(res);
   
   //close connection
   await client.end()
@@ -43,9 +43,11 @@ async function insertUserIntoDatabase(name) {
 
 async function getUserIdByUsername(username) {
   const client = await connectToDatabase();
+  // console.log(username);
 
   const queryText = "SELECT id FROM usernames WHERE username = $1;";
   const res = await client.query(queryText, [username]);
+  // console.log(res);
 
   if (res.rows.length > 0) {
     return res.rows[0].id; 
@@ -54,17 +56,64 @@ async function getUserIdByUsername(username) {
   }
 }
 
-app.get('/', (req, res) => {
-    console.log('Todos Sent!')
+async function getUsernameByUserID(id) {
+  const client = await connectToDatabase();
+  // console.log(username);
+
+  const queryText = "SELECT username FROM usernames WHERE id = $1;";
+  const res = await client.query(queryText, [id]);
+
+  if (res.rows.length > 0) {
+    return res.rows[0].username; 
+  } else {
+    return null;
+  }
+}
+
+async function getAllFromDatabase(user) {
+  const client = await connectToDatabase();
+  const id = await getUserIdByUsername(user);
+  // console.log(id);
+
+  const queryText = 'SELECT * FROM todos WHERE user_id = ' + id + ';';
+  // const queryText = 'SELECT * FROM todos;';
+
+  const res = await client.query(queryText);
+  // console.log(res);
+  
+  //close connection
+  await client.end()
+  return res;
+}
+
+app.get('/', async (req, res) => {
+    const name = req.query.user; 
+    const result = await getAllFromDatabase(name);
+    // console.log(result.rows);
+    
+    todos = await Promise.all(
+      result.rows.map(async (todo) => {
+        const username = await getUsernameByUserID(todo.user_id);
+        // console.log()
+        return {
+          id: todo.id,
+          title: todo.title,
+          completed: todo.completed,
+          user: username
+        };
+      })
+    );
+    // console.log(todos);
+    // console.log('Todos Sent!');
     res.send(todos)
 })
 
 app.post('/login', async (req, res) => {
   const name = req.body['user'];
-  console.log(req.body);
-  console.log(name);
+  // console.log(req.body);
+  // console.log(name);
   await insertUserIntoDatabase(name);
-  console.log('name entered!');
+  // console.log('name entered!');
 });
 
 app.post('/', async (req, res) => {
@@ -73,14 +122,14 @@ app.post('/', async (req, res) => {
   todos_ids.push(new_todo.id);
   const client = await connectToDatabase();
   const id = await getUserIdByUsername(new_todo.user);
-  console.log(id);
+  // console.log(id);
 
   const queryText = `
     INSERT INTO todos (id, title, completed, user_id)
     VALUES ($1, $2, $3, $4)
     ON CONFLICT (id) DO NOTHING;
   `;
-  await client.query(queryText, [new_todo.id, new_todo.task, new_todo.completed || false, id]);
+  await client.query(queryText, [new_todo.id, new_todo.title, new_todo.completed || false, id]);
   await client.end();
   res.send("Todo added!");
 });
@@ -97,18 +146,18 @@ app.post('/toggle', async (req, res) => {
     }
     return todo;
   });
-  // const client = await connectToDatabase();
-  // const queryText = "UPDATE todos SET completed = NOT completed WHERE id = $1;";
-  // await client.query(queryText, [todo_id]);
 
-  // await client.end();
-  // res.send(todos);
+  const client = await connectToDatabase();
+  const queryText = "UPDATE todos SET completed = NOT completed WHERE id = $1;";
+  await client.query(queryText, [id]);
+
+  await client.end();
   res.send("Todo status toggled!");
 });
 
 app.delete('/', (req, res) => {
   const deleted_todo_id = req.body['id'];
-  console.log(req.body)
+  // console.log(req.body)
   todos = todos.filter(todo => todo.id !== deleted_todo_id);
   res.send("Todo deleted!");
 });

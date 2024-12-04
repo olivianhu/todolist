@@ -5,7 +5,7 @@ import Axios from "axios"
 
 export default function TodoPage( {addTodo, todos, setTodos, removeTodo, toggleComplete, user}) {
   useEffect(() => 
-    {Axios.get('http://localhost:5000/')
+    {Axios.get(`http://localhost:5000/?user=${user}`)
       .then(function (response) {
           console.log('response successfully received, response below')
           console.log(response)
@@ -17,7 +17,7 @@ export default function TodoPage( {addTodo, todos, setTodos, removeTodo, toggleC
           console.log(error)
       })
     }
-  , [setTodos])
+  , [user])
 
   return(
     <div>
